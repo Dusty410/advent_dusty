@@ -50,3 +50,7 @@ AdventOfCode.Input.get!(7)
 AdventOfCode.Input.delete!(7, 2019)
 # and the next time you `get!` it will download a fresh one -- use this sparingly!
 ```
+
+### To run a part of a day
+
+e.g. `mix y2025.d01.p1`
