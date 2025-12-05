@@ -65,18 +65,10 @@ defmodule Advent.Year2025.Day04 do
   end
 
   def part2(args) do
-    # point_map = condition_input(args)
-
     args
     |> condition_input()
     |> count_and_remove_points(0)
   end
-
-  # @spec can_any_be_removed?(point_map :: point_map()) :: boolean()
-  # defp can_any_be_removed?(point_map) do
-  #   point_map
-  #   |> Enum.any?(fn point -> not too_many_neighbors?(point, point_map) end)
-  # end
 
   @spec count_and_remove_points(point_map :: point_map(), acc :: non_neg_integer()) ::
           non_neg_integer()

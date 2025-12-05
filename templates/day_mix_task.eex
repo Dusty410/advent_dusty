@@ -12,6 +12,6 @@ defmodule <%= @module_name %> do
       else:
         input
         |> part<%= @part %>()
-        |> IO.inspect(label: "Part <%= @part %> Results")
+        |> IO.inspect(label: "Part <%= @part %> Results", limit: :infinity)
   end
 end
