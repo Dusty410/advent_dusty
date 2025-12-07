@@ -12,6 +12,6 @@ defmodule Elixir.Mix.Tasks.Y2025.D06.P2 do
       else:
         input
         |> part2()
-        |> IO.inspect(label: "Part 2 Results", limit: :infinity)
+        |> IO.inspect(label: "Part 2 Results", limit: :infinity, charlists: :as_lists)
   end
 end
