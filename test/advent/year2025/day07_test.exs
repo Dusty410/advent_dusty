@@ -3,12 +3,12 @@ defmodule Advent.Year2025.Day07Test do
 
   import Elixir.Advent.Year2025.Day07
 
-  @input ""
+  @input ".......S.......\n...............\n.......^.......\n...............\n......^.^......\n...............\n.....^.^.^.....\n...............\n....^.^...^....\n...............\n...^.^...^.^...\n...............\n..^...^.....^..\n...............\n.^.^.^.^.^...^.\n...............\n"
 
   test "part1" do
     result = part1(@input)
 
-    assert result
+    assert result == 21
   end
 
   test "part2" do
