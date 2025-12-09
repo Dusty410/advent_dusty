@@ -1,14 +1,22 @@
 defmodule Advent.Year2025.Day08 do
   @type xyz :: {non_neg_integer(), non_neg_integer(), non_neg_integer()}
-  @type point_pair :: {xyz(), xyz()}
-  # %{shortest_pairs: list of pairs and distances, circuits: list of lists of points, e.g. [[xyz, xyz], [xyz]]}
+  @type indexed_xyz :: {xyz(), non_neg_integer()}
 
   def part1(args, limit \\ 1000) do
-    args
-    |> condition_input()
-    |> find_nearest_pairs([], limit)
+    indexed_points = condition_input(args)
+
+    distances_by_index = indexed_points |> generate_all_distances() |> Enum.slice(0..(limit - 1))
+
+    distances_by_index
+    |> join_circuits(indexed_points)
+    |> Enum.slice(0..2)
+    |> Enum.map(fn circuit -> length(circuit) end)
+    |> Enum.reduce(fn length, acc ->
+      acc * length
+    end)
   end
 
+  @spec condition_input(input :: String.t()) :: list({xyz(), non_neg_integer()})
   defp condition_input(input) do
     input
     |> String.split("\n", trim: true)
@@ -18,81 +26,87 @@ defmodule Advent.Year2025.Day08 do
       |> Enum.map(&String.to_integer/1)
       |> List.to_tuple()
     end)
+    |> Enum.with_index()
   end
 
-  # @spec all_unique_pairs(points :: list(xyz())) :: list({xyz(), xyz()})
-  # defp all_unique_pairs(points) do
-  #   Enum.reduce(points, [], fn point1, acc ->
-  #     Enum.reduce(points, acc, fn point2, acc ->
-  #       if {point1, point2} in acc or {point2, point1} in acc,
-  #         do: acc,
-  #         else: [{point1, point2} | acc]
-  #     end)
-  #   end)
-  # end
+  @spec generate_all_distances(indexed_points :: list({xyz(), non_neg_integer()})) ::
+          {float(), {non_neg_integer(), non_neg_integer()}}
+  defp generate_all_distances(indexed_points) do
+    for {p1, i} <- indexed_points,
+        {p2, j} <- indexed_points,
+        i < j do
+      dist = calc_distance(p1, p2)
+      {dist, {i, j}}
+    end
+    |> Enum.sort_by(fn {dist, _} -> dist end)
+  end
 
   @spec calc_distance(xyz(), xyz()) :: float()
   defp calc_distance({x1, y1, z1}, {x2, y2, z2}) do
-    # IO.puts("Calculating distance between (#{x1},#{y1},#{z1} and (#{x2},#{y2},#{z2})")
-
     :math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2)
   end
 
-  @spec find_nearest_pairs(
-          points :: list(xyz()),
-          found :: list({point_pair(), float()}),
-          limit :: non_neg_integer()
-        ) :: list({point_pair(), float()})
-  defp find_nearest_pairs(points, found_pairs, limit)
-
-  defp find_nearest_pairs(_points, found_pairs, limit) when length(found_pairs) >= limit,
-    do: found_pairs
-
-  defp find_nearest_pairs(points, found_pairs, already_checked, limit) do
-    for point1 <- points, point2 <- points, reduce: [] do
-      acc ->
-    end
-    # next_shortest =
-    # Enum.reduce(points, nil, fn point1, acc ->
-    #   Enum.reduce(points, acc, fn point2, acc ->
-    #     # acc = if is_nil(acc), do: {{point1, point2}, calc_distance(point1, point2)}, else: acc
-    #
-    #     cond do
-    #       point1 == point2 ->
-    #         acc
-    #
-    #       is_nil(acc) ->
-    #         {{point1, point2}, calc_distance(point1, point2)}
-    #
-    #       point_pair_already_found?(found_pairs, {point1, point2}) ->
-    #         acc
-    #
-    #       true ->
-    #         {_current_shortest_pair, current_shortest_distance} = acc
-    #         new_distance = calc_distance(point1, point2)
-    #
-    #         if new_distance < current_shortest_distance,
-    #           do: {{point1, point2}, new_distance},
-    #           else: acc
-    #     end
-    #   end)
-    # end)
-
-    # found_pairs = [next_shortest | found_pairs]
-    #
-    # found_pairs |> length() |> IO.inspect()
-    #
-    # find_nearest_pairs(points, found_pairs, limit)
+  @spec get_point_by_index(indexed_points :: list(indexed_xyz()), non_neg_integer()) :: xyz()
+  defp get_point_by_index(indexed_points, target_index) do
+    Enum.find(indexed_points, fn {_point, index} ->
+      index == target_index
+    end)
+    |> then(fn {xyz, _index} -> xyz end)
   end
 
-  @spec point_pair_already_found?(found_pairs :: list({point_pair(), float()}), point_pair()) ::
-          boolean()
-  defp point_pair_already_found?(found_pairs, point_pair) do
-    {p1, p2} = point_pair
+  @spec join_circuits(
+          distances_by_index :: list({float(), {non_neg_integer(), non_neg_integer()}}),
+          indexed_points :: list({xyz(), non_neg_integer()})
+        ) :: list(list(xyz()))
+  defp join_circuits(distances_by_index, indexed_points) do
+    Enum.reduce(distances_by_index, [], fn {_distance, {i, j}}, circuits ->
+      point1 = get_point_by_index(indexed_points, i)
+      point2 = get_point_by_index(indexed_points, j)
 
-    Enum.any?(found_pairs, fn {found_point_pair, _distance} ->
-      point_pair == found_point_pair or {p2, p1} == found_point_pair
+      connect_point(circuits, point1, point2)
     end)
+    |> Enum.sort_by(fn circuit -> length(circuit) end, :desc)
+  end
+
+  @spec connect_point(circuits :: list(list(xyz())), point1 :: xyz(), point2 :: xyz()) ::
+          list(list(xyz()))
+  defp connect_point(circuits, point1, point2) do
+    found_circuit1 = find_circuit_with_point(circuits, point1)
+    found_circuit2 = find_circuit_with_point(circuits, point2)
+
+    case {found_circuit1, found_circuit2} do
+      {nil, nil} ->
+        [[point1, point2] | circuits]
+
+      {found_circuit1, nil} ->
+        replace_circuit(circuits, found_circuit1, [point2 | found_circuit1])
+
+      {nil, found_circuit2} ->
+        replace_circuit(circuits, found_circuit2, [point1 | found_circuit2])
+
+      {found_circuit1, found_circuit2} when found_circuit1 == found_circuit2 ->
+        circuits
+
+      {found_circuit1, found_circuit2} ->
+        merge_and_replace_circuits(circuits, found_circuit1, found_circuit2)
+    end
+  end
+
+  @spec find_circuit_with_point(circuits :: list(list(xyz())), xyz()) :: list(xyz())
+  defp find_circuit_with_point(circuits, point) do
+    Enum.find(circuits, fn circuit ->
+      point in circuit
+    end)
+  end
+
+  defp replace_circuit(circuits, old_circuit, new_circuit) do
+    list = List.delete(circuits, old_circuit)
+    [new_circuit | list]
+  end
+
+  defp merge_and_replace_circuits(circuits, circuit1, circuit2) do
+    list = circuits |> List.delete(circuit1) |> List.delete(circuit2)
+    [circuit1 ++ circuit2 | list]
   end
 
   def part2(args) do
