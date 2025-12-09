@@ -15,6 +15,6 @@ defmodule Advent.Year2025.Day08Test do
   test "part2" do
     result = part2(@input)
 
-    assert result
+    assert result == 25272
   end
 end
